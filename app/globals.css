@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Пастельная палитра «Soft Studio»: лаванда (primary), блюш-розовый
+     (accent), мята (success) и сливочно-персиковые подложки.
+     Тёмная тема — глубокий сливовый с пастельными акцентами. */
+  :root {
+    --background: 260 60% 99%;
+    --foreground: 258 26% 16%;
+    --card: 0 0% 100%;
+    --card-foreground: 258 26% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 258 26% 16%;
+    --primary: 258 72% 58%; /* лаванда — рабочий цвет текста и кнопок */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 258 48% 95%;
+    --secondary-foreground: 258 30% 26%;
+    --muted: 260 42% 96%;
+    --muted-foreground: 258 14% 46%;
+    --accent: 335 90% 92%; /* блюш — мягкие ховеры и подложки */
+    --accent-foreground: 330 42% 30%;
+    --destructive: 358 70% 62%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 163 52% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 33 92% 52%;
+    --warning-foreground: 30 48% 16%;
+    --info: 205 78% 54%;
+    --info-foreground: 0 0% 100%;
+    --border: 260 36% 92%;
+    --input: 260 34% 90%;
+    --ring: 258 80% 68%;
+    --radius: 1rem;
+
+    /* Пастельные градиенты: лаванда → блюш → персик */
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(262 92% 74%) 0%,
+      hsl(320 88% 80%) 52%,
+      hsl(22 96% 80%) 100%
+    );
+    --gradient-soft: linear-gradient(
+      160deg,
+      hsl(258 100% 98%) 0%,
+      hsl(310 100% 98%) 45%,
+      hsl(24 100% 97%) 100%
+    );
+    --gradient-mesh: radial-gradient(
+        58rem 58rem at 10% -12%,
+        hsl(262 100% 94% / 0.9),
+        transparent 62%
+      ),
+      radial-gradient(46rem 46rem at 96% -4%, hsl(325 100% 94% / 0.85), transparent 60%),
+      radial-gradient(52rem 52rem at 52% 112%, hsl(45 100% 93% / 0.75), transparent 62%);
+  }
+
+  .dark {
+    --background: 260 28% 8%;
+    --foreground: 260 30% 96%;
+    --card: 260 26% 12%;
+    --card-foreground: 260 30% 96%;
+    --popover: 260 26% 12%;
+    --popover-foreground: 260 30% 96%;
+    --primary: 258 92% 80%;
+    --primary-foreground: 260 40% 14%;
+    --secondary: 260 22% 18%;
+    --secondary-foreground: 260 30% 94%;
+    --muted: 260 22% 18%;
+    --muted-foreground: 260 14% 68%;
+    --accent: 330 42% 26%;
+    --accent-foreground: 335 90% 92%;
+    --destructive: 358 62% 62%;
+    --destructive-foreground: 260 40% 12%;
+    --success: 163 55% 62%;
+    --success-foreground: 260 40% 12%;
+    --warning: 35 92% 68%;
+    --warning-foreground: 260 40% 12%;
+    --info: 205 80% 70%;
+    --info-foreground: 260 40% 12%;
+    --border: 260 20% 22%;
+    --input: 260 20% 24%;
+    --ring: 258 85% 74%;
+
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(262 72% 66%) 0%,
+      hsl(320 62% 66%) 52%,
+      hsl(24 78% 68%) 100%
+    );
+    --gradient-soft: linear-gradient(
+      160deg,
+      hsl(260 26% 13%) 0%,
+      hsl(300 22% 14%) 45%,
+      hsl(24 24% 13%) 100%
+    );
+    --gradient-mesh: radial-gradient(
+        58rem 58rem at 8% -14%,
+        hsl(262 60% 26% / 0.55),
+        transparent 62%
+      ),
+      radial-gradient(46rem 46rem at 98% -6%, hsl(325 55% 24% / 0.5), transparent 60%),
+      radial-gradient(52rem 52rem at 50% 116%, hsl(30 55% 22% / 0.45), transparent 62%);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-image: var(--gradient-mesh);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    font-feature-settings: 'ss01' 1, 'cv11' 1;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply text-balance;
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.24);
+    color: hsl(var(--foreground));
+  }
+
+  /* Мягкие пастельные скроллбары */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.35) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--primary) / 0.28);
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--primary) / 0.45);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Единая поверхность карточек: мягкая тень + пастельная кромка */
+  .surface {
+    @apply rounded-2xl border bg-card shadow-card;
+  }
+
+  /* Микро-метка над заголовком (eyebrow) */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/[0.07] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary;
+  }
+
+  /* Плашка-логотип: пастельный градиент + тёмный сливовый глиф */
+  .icon-gradient {
+    @apply bg-gradient-primary text-[hsl(260_45%_18%)];
+  }
+}
+
+@layer utilities {
+  /* Убираем стрелки у input[type=number] в формах цен */
+  .no-spinner::-webkit-outer-spin-button,
+  .no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .no-spinner {
+    -moz-appearance: textfield;
+  }
+
+  /* Пастельный градиентный текст */
+  .text-gradient {
+    background-image: var(--gradient-primary);
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* Мягкое «стекло» для хедера, оверлеев и карточек поверх градиента */
+  .glass {
+    background-color: hsl(var(--card) / 0.72);
+    @apply border border-white/60 backdrop-blur-xl backdrop-saturate-150;
+  }
+
+  .dark .glass {
+    @apply border-white/10;
+  }
+
+  /* Плавный подъём карточки при ховере */
+  .hover-lift {
+    @apply transition-all duration-300 ease-soft hover:-translate-y-1 hover:shadow-float;
+  }
+
+  /* Пастельное свечение под элементом */
+  .glow-soft {
+    box-shadow: 0 18px 45px -22px hsl(var(--primary) / 0.55);
+  }
+}

@@ -1,0 +1,251 @@
+// Prisma-схема платформы аренды рабочих мест для бьюти-мастеров.
+// PostgreSQL + Prisma ORM.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ Enums ============
+
+enum Role {
+  MASTER
+  ADMIN
+}
+
+enum SpaceType {
+  CHAIR // Парикмахерское кресло
+  CABINET // Кабинет (брови/ресницы/косметология) 
+  STATION // Маникюрная станция
+  ROOM // Зал (визаж, фотозона)
+}
+
+enum TariffType {
+  HOURLY
+  DAILY
+  MONTHLY
+}
+
+enum BookingStatus {
+  PENDING // Создана, ждёт оплаты
+  PAID // Ожидает подтверждения платёжной системы (waiting_for_capture)
+  CONFIRMED // Оплачена и подтверждена
+  CANCELLED // Отменена
+  COMPLETED // Услуги оказаны (бронь завершилась)
+}
+
+enum PaymentStatus {
+  PENDING
+  WAITING_FOR_CAPTURED
+  SUCCEEDED
+  CANCELED
+}
+
+enum ReminderChannel {
+  TELEGRAM
+  EMAIL
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// ============ Models ============
+
+/// Пользователь: мастер или администратор
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  phone          String?
+  role           Role     @default(MASTER)
+  passwordHash   String
+  telegramId     String?  @unique
+  specialization String?
+  avatar         String?
+  isVerified     Boolean  @default(false)
+  isBlocked      Boolean  @default(false)
+  balance        Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  bookings  Booking[]
+  favorites Favorite[]
+  reviews   Review[]
+  linkCodes LinkCode[]
+}
+
+/// Рабочее место: кресло / кабинет / станция / зал
+model Space {
+  id            String    @id @default(cuid())
+  name          String
+  type          SpaceType
+  description   String
+  photos        String[]
+  capacity      Int       @default(1)
+  amenities     String[]
+  pricePerHour  Decimal   @db.Decimal(12, 2)
+  pricePerDay   Decimal   @db.Decimal(12, 2)
+  pricePerMonth Decimal   @db.Decimal(12, 2)
+  /// Буфер между бронями в минутах (уборка/проветривание)
+  bufferMinutes Int       @default(15)
+  address       String?
+  rules         String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tariffs      Tariff[]
+  bookings     Booking[]
+  schedules    Schedule[]
+  blockedSlots BlockedSlot[]
+  favorites    Favorite[]
+  reviews      Review[]
+
+  @@index([type, isActive])
+}
+
+/// Тариф на место (цена и скидка для способа оплаты)
+model Tariff {
+  id       String     @id @default(cuid())
+  spaceId  String
+  type     TariffType
+  price    Decimal    @db.Decimal(12, 2)
+  minHours Int        @default(1)
+  /// Скидка в процентах (0–50)
+  discount Int        @default(0)
+  space    Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, type])
+}
+
+/// Бронь рабочего места
+model Booking {
+  id         String        @id @default(cuid())
+  userId     String
+  spaceId    String
+  startTime  DateTime
+  endTime    DateTime
+  status     BookingStatus @default(PENDING)
+  totalPrice Decimal       @db.Decimal(12, 2)
+  /// YooKassa payment id (заполняется при создании платежа)
+  paymentId  String?       @unique
+  /// Код доступа к локации на время брони
+  accessCode String?       @unique
+  tariffType TariffType    @default(HOURLY)
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space     Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  payment   Payment?
+  reminders Reminder[]
+
+  @@index([spaceId, startTime, endTime])
+  @@index([userId, status])
+}
+
+/// Платёж (ЮKassa или mock)
+model Payment {
+  id         String        @id @default(cuid())
+  bookingId  String        @unique
+  amount     Decimal       @db.Decimal(12, 2)
+  status     PaymentStatus @default(PENDING)
+  yookassaId String?       @unique
+  metadata   Json?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+/// Расписание работы места по дням недели (0 = воскресенье)
+model Schedule {
+  id        String  @id @default(cuid())
+  spaceId   String
+  dayOfWeek Int
+  openTime  String // "09:00"
+  closeTime String // "21:00"
+  isClosed  Boolean @default(false)
+  space     Space   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, dayOfWeek])
+}
+
+/// Блокировка слота (техобслуживание, ремонт и т.п.)
+model BlockedSlot {
+  id        String   @id @default(cuid())
+  spaceId   String
+  startTime DateTime
+  endTime   DateTime
+  reason    String
+  space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId, startTime, endTime])
+}
+
+/// Напоминание о брони (за 24ч / за 1ч)
+model Reminder {
+  id        String          @id @default(cuid())
+  bookingId String
+  channel   ReminderChannel @default(TELEGRAM)
+  /// REMINDER_24H | REMINDER_1H
+  type      String
+  status    ReminderStatus  @default(PENDING)
+  sentAt    DateTime?
+  error     String?
+  createdAt DateTime        @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, type])
+}
+
+/// Отзыв мастера о рабочем месте
+model Review {
+  id        String   @id @default(cuid())
+  spaceId   String
+  userId    String
+  rating    Int // 1–5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+}
+
+/// Избранное место мастера
+model Favorite {
+  userId    String
+  spaceId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@id([userId, spaceId])
+}
+
+/// Одноразовый код для привязки Telegram-аккаунта
+model LinkCode {
+  id        String    @id @default(cuid())
+  userId    String
+  code      String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([code])
+}
+
